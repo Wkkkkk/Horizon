@@ -1,0 +1,37 @@
+name: Sync with Upstream
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # Every Monday at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/Thysrael/Horizon.git
+          git fetch upstream
+
+      - name: Merge upstream (our changes win on conflict)
+        run: |
+          git merge upstream/main -X ours --no-edit \
+            -m "chore: sync with upstream $(date +'%Y-%m-%d')"
+
+      - name: Push
+        run: git push origin main
