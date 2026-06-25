@@ -124,9 +124,23 @@
     }
   }
 
+  function addHomeLink() {
+    var toggle = document.querySelector('.lang-toggle');
+    if (!toggle) return;
+    var path = window.location.pathname.replace(/\/$/, '');
+    var base = '/Horizon';
+    if (path === base || path === '') return;
+    var home = document.createElement('a');
+    home.href = base + '/';
+    home.textContent = '← Home';
+    home.className = 'home-link';
+    toggle.insertBefore(home, toggle.firstChild);
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     processScoreBadges();
     markSemanticElements();
     setupLanguageToggle();
+    addHomeLink();
   });
 })();
