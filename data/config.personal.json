@@ -43,6 +43,30 @@
         "url": "https://www.deeplearning.ai/the-batch/feed/",
         "enabled": true,
         "category": "ai-news"
+      },
+      {
+        "name": "webrtcHacks",
+        "url": "https://webrtchacks.com/feed/",
+        "enabled": true,
+        "category": "media-streaming"
+      },
+      {
+        "name": "Mux Blog",
+        "url": "https://www.mux.com/blog/rss.xml",
+        "enabled": true,
+        "category": "media-streaming"
+      },
+      {
+        "name": "Cloudflare Stream",
+        "url": "https://blog.cloudflare.com/tag/stream/rss/",
+        "enabled": true,
+        "category": "media-streaming"
+      },
+      {
+        "name": "OTTVerse",
+        "url": "https://ottverse.com/feed/",
+        "enabled": true,
+        "category": "media-streaming"
       }
     ],
     "reddit": {
@@ -91,15 +115,48 @@
       },
       {
         "type": "repo_releases",
-        "owner": "microsoft",
-        "repo": "vscode",
+        "owner": "video-dev",
+        "repo": "hls.js",
+        "enabled": true
+      },
+      {
+        "type": "repo_releases",
+        "owner": "shaka-project",
+        "repo": "shaka-player",
+        "enabled": true
+      },
+      {
+        "type": "repo_releases",
+        "owner": "gpac",
+        "repo": "gpac",
+        "enabled": true
+      },
+      {
+        "type": "repo_releases",
+        "owner": "Eyevinn",
+        "repo": "mp4ff",
         "enabled": true
       }
     ]
   },
   "filtering": {
-    "ai_score_threshold": 7.0,
-    "time_window_hours": 24
+    "ai_score_threshold": 6.5,
+    "time_window_hours": 24,
+    "max_items": 18,
+    "category_groups": {
+      "media": {
+        "name": "Streaming / Media",
+        "limit": 5,
+        "categories": ["media-streaming"]
+      },
+      "ai": {
+        "name": "AI / ML",
+        "limit": 6,
+        "categories": ["ai-news", "ai-tools", "machine-learning", "semiconductors"]
+      }
+    },
+    "default_group": "general",
+    "default_group_limit": 8
   },
   "webhook": {
     "enabled": false
