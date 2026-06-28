@@ -67,6 +67,66 @@
         "url": "https://ottverse.com/feed/",
         "enabled": true,
         "category": "media-streaming"
+      },
+      {
+        "name": "Andrej Karpathy",
+        "url": "https://karpathy.bearblog.dev/feed/",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Andrej Karpathy (YouTube)",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCPk8m_r6fkUSYmvgCBwq-sw",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Johann Rehberger - Embrace The Red",
+        "url": "https://embracethered.com/blog/index.xml",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Max Woolf (minimaxir)",
+        "url": "https://minimaxir.com/index.xml",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Theo Browne (YouTube)",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCbRP3c757lWg9M-U7TyEkXA",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Hamel Husain",
+        "url": "https://hamel.dev/index.xml",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Ethan Mollick - One Useful Thing",
+        "url": "https://www.oneusefulthing.org/feed",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Nathan Lambert - Interconnects",
+        "url": "https://www.interconnects.ai/feed",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Understanding AI (Lee & Trott)",
+        "url": "https://www.understandingai.org/feed",
+        "enabled": true,
+        "category": "blogs"
+      },
+      {
+        "name": "Andy Masley",
+        "url": "https://blog.andymasley.com/feed",
+        "enabled": true,
+        "category": "blogs"
       }
     ],
     "reddit": {
@@ -177,6 +237,11 @@
         "name": "AI / ML",
         "limit": 6,
         "categories": ["ai-news", "ai-tools", "machine-learning", "semiconductors"]
+      },
+      "blogs": {
+        "name": "Blogs",
+        "limit": 6,
+        "categories": ["blogs"]
       }
     },
     "default_group": "general",
