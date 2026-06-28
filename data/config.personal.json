@@ -95,6 +95,30 @@
           "time_filter": "day",
           "fetch_limit": 10,
           "min_score": 200
+        },
+        {
+          "subreddit": "ClaudeCode",
+          "enabled": true,
+          "sort": "hot",
+          "time_filter": "day",
+          "fetch_limit": 15,
+          "min_score": 25
+        },
+        {
+          "subreddit": "vibecoding",
+          "enabled": true,
+          "sort": "hot",
+          "time_filter": "day",
+          "fetch_limit": 15,
+          "min_score": 25
+        },
+        {
+          "subreddit": "Anthropic",
+          "enabled": true,
+          "sort": "hot",
+          "time_filter": "day",
+          "fetch_limit": 15,
+          "min_score": 25
         }
       ],
       "users": [],
@@ -142,7 +166,7 @@
   "filtering": {
     "ai_score_threshold": 6.5,
     "time_window_hours": 24,
-    "max_items": 18,
+    "max_items": 24,
     "category_groups": {
       "media": {
         "name": "Streaming / Media",
@@ -156,7 +180,7 @@
       }
     },
     "default_group": "general",
-    "default_group_limit": 8
+    "default_group_limit": 12
   },
   "webhook": {
     "enabled": false
