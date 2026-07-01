@@ -1,15 +1,22 @@
 name: Sync with Upstream
 
+# Weekly sync of upstream/main into our main.
+# main is protected, so we never push to it directly: we merge on a dated
+# branch and open a PR for review. If the merge conflicts, the job fails
+# loudly (no silent -X ours) so upstream changes are never dropped unnoticed.
+
 on:
   schedule:
     - cron: '0 3 * * 1'  # Every Monday at 03:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout
@@ -28,10 +35,50 @@ jobs:
           git remote add upstream https://github.com/Thysrael/Horizon.git
           git fetch upstream
 
-      - name: Merge upstream (our changes win on conflict)
+      - name: Check for new upstream commits
+        id: check
         run: |
-          git merge upstream/main -X ours --no-edit \
-            -m "chore: sync with upstream $(date +'%Y-%m-%d')"
+          behind=$(git rev-list --count origin/main..upstream/main)
+          echo "behind=$behind" >> "$GITHUB_OUTPUT"
+          echo "main is $behind commit(s) behind upstream/main"
 
-      - name: Push
-        run: git push origin main
+      - name: Merge upstream on a sync branch
+        if: steps.check.outputs.behind != '0'
+        id: merge
+        run: |
+          date_tag="$(date +'%Y-%m-%d')"
+          branch="sync/upstream-${date_tag}"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "date_tag=$date_tag" >> "$GITHUB_OUTPUT"
+          git checkout -B "$branch" origin/main
+          if git merge upstream/main --no-edit -m "chore: sync with upstream ${date_tag}"; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            git merge --abort
+          fi
+
+      - name: Push branch and open PR
+        if: steps.check.outputs.behind != '0' && steps.merge.outputs.clean == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="${{ steps.merge.outputs.branch }}"
+          git push --force-with-lease -u origin "$branch"
+          if [ -z "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --base main --head "$branch" \
+              --title "chore: sync with upstream ${{ steps.merge.outputs.date_tag }}" \
+              --body "Automated weekly sync of \`upstream/main\` (Thysrael/Horizon) into \`main\`. Merged cleanly. Review the diff and merge."
+          else
+            echo "PR for $branch already open; branch updated."
+          fi
+
+      - name: Fail on merge conflict (manual sync required)
+        if: steps.check.outputs.behind != '0' && steps.merge.outputs.clean == 'false'
+        run: |
+          echo "::error::Merging upstream/main conflicts with main. Resolve manually:"
+          echo "  git fetch upstream"
+          echo "  git checkout -b sync-upstream origin/main"
+          echo "  git merge upstream/main   # resolve conflicts, keeping your intended changes"
+          echo "  git push origin sync-upstream   # then open a PR into main"
+          exit 1
