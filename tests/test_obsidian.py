@@ -72,6 +72,36 @@ def test_build_note_body_handles_missing_tags_and_summary():
     assert "# [Important Item 2](https://example.com/items/2)" in body
 
 
+def test_build_note_body_includes_background_and_discussion_en():
+    item = _make_item(1)
+    item.metadata = {
+        "background_en": "Some background context here.",
+        "community_discussion_en": "Community is split on this.",
+    }
+    body = build_note_body(item, "en", "2026-07-01")
+    assert "## Background\nSome background context here." in body
+    assert "## Discussion\nCommunity is split on this." in body
+
+
+def test_build_note_body_omits_empty_background_and_discussion():
+    item = _make_item(1)
+    item.metadata = {"background_en": "", "community_discussion_en": ""}
+    body = build_note_body(item, "en", "2026-07-01")
+    assert "## Background" not in body
+    assert "## Discussion" not in body
+
+
+def test_build_note_body_uses_zh_labels_for_background_and_discussion():
+    item = _make_item(1)
+    item.metadata = {
+        "background_zh": "这是背景信息。",
+        "community_discussion_zh": "社区对此意见不一。",
+    }
+    body = build_note_body(item, "zh", "2026-07-01")
+    assert "## 背景\n这是背景信息。" in body
+    assert "## 社区讨论\n社区对此意见不一。" in body
+
+
 def test_build_save_uri_structure_and_encoding():
     cfg = ObsidianConfig(vault="Obsidian", folder="News/Horizon")
     uri = build_save_uri(cfg, _make_item(1), "en", "2026-07-01")
