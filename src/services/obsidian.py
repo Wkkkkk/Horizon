@@ -16,6 +16,12 @@ from ..models import ContentItem, ObsidianConfig
 _ILLEGAL = re.compile(r'[\\/:*?"<>|#^\[\]]')
 _WS = re.compile(r"\s+")
 
+# Section labels, mirroring the daily digest's web rendering (see summarizer.LABELS).
+_LABELS = {
+    "en": {"background": "Background", "discussion": "Discussion"},
+    "zh": {"background": "背景", "discussion": "社区讨论"},
+}
+
 
 def slugify_title(title: str, max_len: int = 80) -> str:
     """Turn a title into a filesystem/Obsidian-safe slug."""
@@ -61,17 +67,34 @@ def _summary_for(item: ContentItem, language: str) -> str:
     )
 
 
+def _background_for(item: ContentItem, language: str) -> str:
+    meta = item.metadata or {}
+    return meta.get(f"background_{language}") or meta.get("background") or ""
+
+
+def _discussion_for(item: ContentItem, language: str) -> str:
+    meta = item.metadata or {}
+    return (
+        meta.get(f"community_discussion_{language}")
+        or meta.get("community_discussion")
+        or ""
+    )
+
+
 def _url_hash(item: ContentItem) -> str:
     return hashlib.sha256(str(item.url).encode("utf-8")).hexdigest()[:8]
 
 
 def build_note_body(item: ContentItem, language: str, date: str) -> str:
     """Render the rich markdown note body (YAML frontmatter + heading + summary)."""
+    labels = _LABELS.get(language, _LABELS["en"])
     title = item.title
     heading_title = title.replace("[", "(").replace("]", ")")
     url = str(item.url)
     source = _format_source(item)
     summary = _summary_for(item, language)
+    background = _background_for(item, language)
+    discussion = _discussion_for(item, language)
     score_fm = item.ai_score if item.ai_score is not None else "null"
     score_disp = item.ai_score if item.ai_score is not None else "?"
     tags = ", ".join(_yaml_str(t) for t in (item.ai_tags or []))
@@ -90,7 +113,13 @@ def build_note_body(item: ContentItem, language: str, date: str) -> str:
     )
     heading = f"# [{heading_title}]({url})"
     subtitle = f"⭐️ {score_disp}/10 · {source}"
-    return f"{frontmatter}\n{heading}\n{subtitle}\n\n{summary}\n"
+
+    parts = [frontmatter, heading, subtitle, "", summary]
+    if background:
+        parts += ["", f"## {labels['background']}", background]
+    if discussion:
+        parts += ["", f"## {labels['discussion']}", discussion]
+    return "\n".join(parts) + "\n"
 
 
 def build_save_uri(
