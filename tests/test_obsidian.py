@@ -114,3 +114,13 @@ def test_build_note_body_title_with_newline_is_escaped():
     title_lines = [ln for ln in fm_lines if ln.startswith("title:")]
     assert len(title_lines) == 1  # title stays on one physical line
     assert "\\n" in title_lines[0]  # newline is escaped
+
+
+def test_build_note_body_sanitizes_brackets_in_heading():
+    item = _make_item(1)
+    item.title = "Anthropic ships Claude [Opus 4.8]"
+    body = build_note_body(item, "en", "2026-07-01")
+    # heading link text has brackets replaced with parens so the md link isn't broken
+    assert "# [Anthropic ships Claude (Opus 4.8)](https://example.com/items/1)" in body
+    # frontmatter keeps the real (bracketed) title, YAML-quoted
+    assert 'title: "Anthropic ships Claude [Opus 4.8]"' in body

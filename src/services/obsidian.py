@@ -68,6 +68,7 @@ def _url_hash(item: ContentItem) -> str:
 def build_note_body(item: ContentItem, language: str, date: str) -> str:
     """Render the rich markdown note body (YAML frontmatter + heading + summary)."""
     title = item.title
+    heading_title = title.replace("[", "(").replace("]", ")")
     url = str(item.url)
     source = _format_source(item)
     summary = _summary_for(item, language)
@@ -87,7 +88,7 @@ def build_note_body(item: ContentItem, language: str, date: str) -> str:
             "---",
         ]
     )
-    heading = f"# [{title}]({url})"
+    heading = f"# [{heading_title}]({url})"
     subtitle = f"⭐️ {score_disp}/10 · {source}"
     return f"{frontmatter}\n{heading}\n{subtitle}\n\n{summary}\n"
 
