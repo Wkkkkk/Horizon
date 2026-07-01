@@ -361,6 +361,14 @@ class EmailConfig(BaseModel):
     enabled: bool = False
 
 
+class ObsidianConfig(BaseModel):
+    """Optional Obsidian bookmarking: render a Save link per digest item."""
+
+    vault: str  # Obsidian vault name (as shown in Obsidian), used in obsidian:// URIs
+    folder: str = "News/Horizon"  # vault-relative folder new notes are created in
+    enabled: bool = True
+
+
 class CategoryGroupConfig(BaseModel):
     """A quota group containing one or more source categories."""
 
@@ -389,3 +397,4 @@ class Config(BaseModel):
     filtering: FilteringConfig
     email: Optional[EmailConfig] = None
     webhook: Optional[WebhookConfig] = None
+    obsidian: Optional[ObsidianConfig] = None
