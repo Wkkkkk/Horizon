@@ -249,5 +249,10 @@
   },
   "webhook": {
     "enabled": false
+  },
+  "obsidian": {
+    "vault": "Obsidian",
+    "folder": "News/Horizon",
+    "enabled": true
   }
 }
