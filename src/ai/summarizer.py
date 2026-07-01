@@ -1,7 +1,7 @@
 """Daily summary generation — pure programmatic rendering."""
 
 import re
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from ..models import ContentItem
 
@@ -64,8 +64,10 @@ LABELS = {
 class DailySummarizer:
     """Generates daily Markdown summaries from pre-analyzed content items."""
 
-    def __init__(self):
-        pass
+    def __init__(self, obsidian=None):
+        # obsidian: Optional[ObsidianConfig]; when set (and enabled), a
+        # "Save to Obsidian" link is appended to each rendered item.
+        self.obsidian = obsidian
 
     async def generate_summary(
         self,
@@ -109,7 +111,7 @@ class DailySummarizer:
             toc_entries.append(f"{i + 1}. [{t}](#item-{i + 1}) \u2b50\ufe0f {score}/10")
         toc = "\n".join(toc_entries) + "\n\n---\n\n"
 
-        parts = [self._format_item(item, labels, language, i + 1) for i, item in enumerate(items)]
+        parts = [self._format_item(item, labels, language, i + 1, date) for i, item in enumerate(items)]
 
         return header + toc + "".join(parts)
 
@@ -160,7 +162,7 @@ class DailySummarizer:
         prefix = f"第 {index}/{total} 条\n\n" if language == "zh" else f"Item {index}/{total}\n\n"
         return prefix + self._format_item(item, labels, language, index).rstrip("-\n ")
 
-    def _format_item(self, item: ContentItem, labels: dict, language: str, index: int) -> str:
+    def _format_item(self, item: ContentItem, labels: dict, language: str, index: int, date: Optional[str] = None) -> str:
         """Format a single ContentItem into Markdown."""
         _title = item.metadata.get(f"title_{language}") or item.title
         title = str(_title).replace("[", "(").replace("]", ")")
@@ -242,6 +244,14 @@ class DailySummarizer:
             tags_str = ", ".join([f"`#{t}`" for t in item.ai_tags])
             lines.append("")
             lines.append(f"**{labels['tags']}**: {tags_str}")
+
+        if date is not None and self.obsidian is not None and self.obsidian.enabled:
+            from ..services.obsidian import build_save_uri
+
+            uri = build_save_uri(self.obsidian, item, language, date)
+            label = "💾 保存到 Obsidian" if language == "zh" else "💾 Save to Obsidian"
+            lines.append("")
+            lines.append(f'<a href="{uri}">{label}</a>')
 
         lines.append("")
         lines.append("---")
