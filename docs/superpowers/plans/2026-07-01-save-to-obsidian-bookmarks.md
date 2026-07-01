@@ -354,12 +354,15 @@ git commit -m "feat: add obsidian save-uri / note-body builder"
 ### Task 3: Render the save link in `DailySummarizer`
 
 **Files:**
-- Modify: `src/ai/summarizer.py` (`DailySummarizer.__init__` ~line 67; `generate_summary` call to `_format_item`; `_format_item` signature ~line 163 and its trailing block ~lines 246-247)
+- Modify: `src/ai/summarizer.py` (`typing` import line 4; `DailySummarizer.__init__` ~line 67; `generate_summary` → `_format_item` call at line 112; `_format_item` signature at line 163 and its trailing block ~lines 246-247)
 - Test: `tests/test_summarizer.py` (extend)
 
 **Interfaces:**
 - Consumes: `build_save_uri` (Task 2), `ObsidianConfig` (Task 1).
-- Produces: `DailySummarizer(obsidian: Optional[ObsidianConfig] = None)`; `_format_item(self, item, labels, language, index, date)` now takes `date`.
+- Produces: `DailySummarizer(obsidian: Optional[ObsidianConfig] = None)`; `_format_item(self, item, labels, language, index, date: Optional[str] = None)` gains a trailing optional `date`.
+
+**⚠️ Critical — two callers of `_format_item`:**
+`_format_item` is called from **both** `generate_summary` (line 112) **and** `generate_webhook_item` (line 161: `return prefix + self._format_item(item, labels, language, index).rstrip("-\n ")`). Therefore `date` **must** be optional (default `None`), and the save link **must** only render when `date is not None`. This (a) keeps `generate_webhook_item`'s existing call working unchanged, and (b) deliberately keeps the `obsidian://` link out of webhook output (the link is only for the web/email digest, per spec). Only update the line-112 caller; leave line 161 exactly as-is.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -423,7 +426,13 @@ with:
         self.obsidian = obsidian
 ```
 
-- [ ] **Step 4: Thread `date` into `_format_item`**
+- [ ] **Step 4: Thread `date` into `_format_item` (optional param)**
+
+First, add `Optional` to the typing import at line 4:
+
+```python
+from typing import List, Dict, Optional
+```
 
 Change the `_format_item` signature (line ~163) from:
 
@@ -434,10 +443,10 @@ Change the `_format_item` signature (line ~163) from:
 to:
 
 ```python
-    def _format_item(self, item: ContentItem, labels: dict, language: str, index: int, date: str) -> str:
+    def _format_item(self, item: ContentItem, labels: dict, language: str, index: int, date: Optional[str] = None) -> str:
 ```
 
-Update the call site in `generate_summary` (the list comprehension building `parts`) from:
+Update **only** the `generate_summary` call site (line 112, the list comprehension building `parts`) from:
 
 ```python
         parts = [self._format_item(item, labels, language, i + 1) for i, item in enumerate(items)]
@@ -448,6 +457,8 @@ to:
 ```python
         parts = [self._format_item(item, labels, language, i + 1, date) for i, item in enumerate(items)]
 ```
+
+**Do NOT change** the `generate_webhook_item` call at line 161 — it stays `self._format_item(item, labels, language, index)`, so `date` defaults to `None` there and no save link is added to webhook output.
 
 - [ ] **Step 5: Append the save link inside `_format_item`**
 
@@ -463,7 +474,7 @@ In `_format_item`, locate the trailing block (currently line ~246-247):
 Replace it with:
 
 ```python
-        if self.obsidian is not None and self.obsidian.enabled:
+        if date is not None and self.obsidian is not None and self.obsidian.enabled:
             from ..services.obsidian import build_save_uri
 
             uri = build_save_uri(self.obsidian, item, language, date)
@@ -476,6 +487,8 @@ Replace it with:
 
         return "\n".join(lines) + "\n\n"
 ```
+
+The `date is not None` guard is what keeps the link out of `generate_webhook_item`'s output.
 
 - [ ] **Step 6: Run tests to verify they pass**
 
@@ -592,6 +605,6 @@ git commit -m "feat: wire ObsidianConfig into orchestrator + document it"
 
 **3. Type consistency:**
 - `build_save_uri(cfg, item, language, date)` — same 4-arg signature in Task 2 definition, Task 2 tests, and Task 3 call site. ✓
-- `_format_item(self, item, labels, language, index, date)` — signature and `generate_summary` caller both updated in Task 3. ✓
+- `_format_item(self, item, labels, language, index, date=None)` — `date` optional; `generate_summary` caller (line 112) updated to pass it, `generate_webhook_item` caller (line 161) intentionally left unchanged. Link gated on `date is not None`. ✓
 - `ObsidianConfig(vault, folder="News/Horizon", enabled=True)` — consistent across Tasks 1-4. ✓
 - `slugify_title(title, max_len=80)` — consistent between module and tests. ✓
