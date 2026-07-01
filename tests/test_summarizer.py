@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from src.ai.summarizer import DailySummarizer
-from src.models import ContentItem, SourceType
+from src.models import ContentItem, ObsidianConfig, SourceType
 
 
 def _run_async(coro):
@@ -138,3 +138,34 @@ def test_generate_empty_summary_zh_uses_localized_analyzed_line():
 
     assert "> 已分析 10 条内容，但没有达到重要性阈值的条目。" in result
     assert "Analyzed 10 items" not in result
+
+
+def test_generate_summary_includes_save_link_when_obsidian_configured():
+    summarizer = DailySummarizer(obsidian=ObsidianConfig(vault="Obsidian"))
+    result = _run_async(
+        summarizer.generate_summary(
+            [_make_item(1)], date="2026-07-01", total_fetched=10, language="en"
+        )
+    )
+    assert "obsidian://new?" in result
+    assert "Save to Obsidian" in result
+
+
+def test_generate_summary_omits_save_link_when_obsidian_absent():
+    summarizer = DailySummarizer()
+    result = _run_async(
+        summarizer.generate_summary(
+            [_make_item(1)], date="2026-07-01", total_fetched=10, language="en"
+        )
+    )
+    assert "obsidian://new?" not in result
+
+
+def test_generate_summary_omits_save_link_when_obsidian_disabled():
+    summarizer = DailySummarizer(obsidian=ObsidianConfig(vault="Obsidian", enabled=False))
+    result = _run_async(
+        summarizer.generate_summary(
+            [_make_item(1)], date="2026-07-01", total_fetched=10, language="en"
+        )
+    )
+    assert "obsidian://new?" not in result
