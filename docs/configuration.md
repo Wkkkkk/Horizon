@@ -552,6 +552,30 @@ Resend SMTP example:
 
 Set `RESEND_API_KEY` in `.env`. Recipients are loaded from `data/subscribers.json`.
 
+## Obsidian Integration
+
+### `obsidian` (optional)
+
+Adds a **💾 Save to Obsidian** link to every item in the daily digest. Clicking it opens your local Obsidian and creates a note for that item via the `obsidian://` URL scheme. No plugins required. Omit this block to disable the feature entirely.
+
+```json
+{
+  "obsidian": {
+    "vault": "Obsidian",
+    "folder": "News/Horizon",
+    "enabled": true
+  }
+}
+```
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `vault` | *(required)* | Your Obsidian vault name, exactly as shown in Obsidian. |
+| `folder` | `News/Horizon` | Vault-relative folder new notes are created in. |
+| `enabled` | `true` | Set to `false` to keep the config but stop rendering the link. |
+
+Each saved item becomes its own note named `<slug>-<hash>.md`, with YAML frontmatter (`title`, `url`, `source`, `score`, `tags`, `saved`) plus the AI summary. The link works when reading the digest in a desktop browser; in email clients `obsidian://` links are typically inert.
+
 ## Webhook Notification
 
 Webhook notification is optional and disabled unless `webhook.enabled` is `true`. Horizon can call Feishu/Lark, DingTalk, Slack, Discord, or any custom webhook endpoint when the pipeline succeeds or fails.

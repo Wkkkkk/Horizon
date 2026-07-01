@@ -146,7 +146,7 @@ class HorizonOrchestrator:
             # 7. Generate and save daily summaries for each configured language
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             for lang in self.config.ai.languages:
-                summarizer = DailySummarizer()
+                summarizer = DailySummarizer(obsidian=self.config.obsidian)
                 summary = await summarizer.generate_summary(important_items, today, len(all_items), language=lang)
 
                 # Save to data/summaries/
@@ -704,6 +704,6 @@ class HorizonOrchestrator:
         """
         self.console.print("📝 Generating daily summary...")
 
-        summarizer = DailySummarizer()
+        summarizer = DailySummarizer(obsidian=self.config.obsidian)
 
         return await summarizer.generate_summary(items, date, total_fetched, language=language)
