@@ -93,3 +93,24 @@ def test_build_save_uri_is_deterministic():
     assert build_save_uri(cfg, item, "en", "2026-07-01") == build_save_uri(
         cfg, item, "en", "2026-07-01"
     )
+
+
+def test_build_note_body_source_with_colon_is_valid_yaml():
+    yaml = __import__("pytest").importorskip("yaml")
+    item = _make_item(1)
+    item.metadata = {"feed_name": "TechCrunch: Startups"}
+    item.author = None
+    body = build_note_body(item, "en", "2026-07-01")
+    frontmatter = body.split("---")[1]
+    data = yaml.safe_load(frontmatter)  # must not raise
+    assert "TechCrunch: Startups" in data["source"]
+
+
+def test_build_note_body_title_with_newline_is_escaped():
+    item = _make_item(2)
+    item.title = "Line one\nLine two"
+    body = build_note_body(item, "en", "2026-07-01")
+    fm_lines = body.split("---")[1].strip().splitlines()
+    title_lines = [ln for ln in fm_lines if ln.startswith("title:")]
+    assert len(title_lines) == 1  # title stays on one physical line
+    assert "\\n" in title_lines[0]  # newline is escaped

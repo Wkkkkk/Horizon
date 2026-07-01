@@ -29,7 +29,13 @@ def slugify_title(title: str, max_len: int = 80) -> str:
 
 def _yaml_str(value: str) -> str:
     """Return a YAML-safe double-quoted scalar."""
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
     return f'"{escaped}"'
 
 
@@ -74,7 +80,7 @@ def build_note_body(item: ContentItem, language: str, date: str) -> str:
             "---",
             f"title: {_yaml_str(title)}",
             f"url: {url}",
-            f"source: {source}",
+            f"source: {_yaml_str(source)}",
             f"score: {score_fm}",
             f"tags: [{tags}]",
             f"saved: {date}",
