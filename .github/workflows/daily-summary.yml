@@ -48,52 +48,8 @@ jobs:
           publish_branch: gh-pages
           enable_jekyll: true
 
-      # The push above triggers GitHub's managed "pages build and deployment"
-      # workflow, whose deploy step intermittently fails server-side with
-      # "Deployment failed, try again later" (actions/deploy-pages#418) and
-      # leaves the site stale until someone re-runs it by hand. Watch that run
-      # and re-run its failed jobs automatically, failing loudly only if the
-      # retries are exhausted.
       - name: Verify Pages deployment (auto-retry transient failures)
         timeout-minutes: 30
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          SHA=$(git ls-remote origin gh-pages | cut -f1)
-          export SHA
-          echo "Watching Pages deployment for gh-pages@$SHA"
-
-          run_id=""
-          for _ in $(seq 1 30); do
-            run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?branch=gh-pages&per_page=5" \
-              --jq '.workflow_runs[] | select(.name == "pages build and deployment" and .head_sha == env.SHA) | .id' \
-              | head -n1 || true)
-            [ -n "$run_id" ] && break
-            sleep 10
-          done
-          if [ -z "$run_id" ]; then
-            echo "::error::No Pages run appeared for gh-pages@$SHA within 5 minutes"
-            exit 1
-          fi
-          echo "Pages run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$run_id"
-
-          for attempt in $(seq 1 6); do
-            for _ in $(seq 1 30); do
-              status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.status' || echo "")
-              [ "$status" = "completed" ] && break
-              sleep 10
-            done
-            conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.conclusion' || echo "")
-            if [ "$conclusion" = "success" ]; then
-              echo "Pages deployment succeeded (watchdog attempt $attempt)"
-              exit 0
-            fi
-            if [ "$attempt" -lt 6 ]; then
-              echo "Pages deployment failed (conclusion=$conclusion) — re-running failed jobs (retry $attempt/5)"
-              sleep 30
-              gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/rerun-failed-jobs"
-            fi
-          done
-          echo "::error::Pages deployment still failing after 5 retries: https://github.com/$GITHUB_REPOSITORY/actions/runs/$run_id"
-          exit 1
+        uses: ./.github/actions/verify-pages-deploy
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

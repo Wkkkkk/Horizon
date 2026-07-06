@@ -1,0 +1,66 @@
+name: Verify Pages deployment
+description: >
+  After a push to gh-pages, watch the managed "pages build and deployment"
+  run it triggers and re-run failed jobs on transient server-side failures
+  ("Deployment failed, try again later", actions/deploy-pages#418), up to
+  5 retries. A cancelled run counts as success: it means a newer push
+  superseded this one, and re-running it would deploy stale content.
+  Requires a token with actions:write and a prior repo checkout.
+
+inputs:
+  token:
+    description: Token with actions:write on this repo (e.g. secrets.GITHUB_TOKEN)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Watch Pages run and retry on failure
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+        SHA=$(git ls-remote origin gh-pages | cut -f1)
+        export SHA
+        echo "Watching Pages deployment for gh-pages@$SHA"
+
+        run_id=""
+        for _ in $(seq 1 30); do
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?branch=gh-pages&per_page=5" \
+            --jq '.workflow_runs[] | select(.name == "pages build and deployment" and .head_sha == env.SHA) | .id' \
+            | head -n1 || true)
+          [ -n "$run_id" ] && break
+          sleep 10
+        done
+        if [ -z "$run_id" ]; then
+          echo "::error::No Pages run appeared for gh-pages@$SHA within 5 minutes"
+          exit 1
+        fi
+        echo "Pages run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$run_id"
+
+        for attempt in $(seq 1 6); do
+          for _ in $(seq 1 30); do
+            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.status' || echo "")
+            [ "$status" = "completed" ] && break
+            sleep 10
+          done
+          conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.conclusion' || echo "")
+          case "$conclusion" in
+            success)
+              echo "Pages deployment succeeded (watchdog attempt $attempt)"
+              exit 0
+              ;;
+            cancelled)
+              echo "Pages run was cancelled — superseded by a newer push, nothing to retry"
+              exit 0
+              ;;
+          esac
+          if [ "$attempt" -lt 6 ]; then
+            echo "Pages deployment failed (conclusion=$conclusion) — re-running failed jobs (retry $attempt/5)"
+            sleep 30
+            gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/rerun-failed-jobs"
+          fi
+        done
+        echo "::error::Pages deployment still failing after 5 retries: https://github.com/$GITHUB_REPOSITORY/actions/runs/$run_id"
+        exit 1
