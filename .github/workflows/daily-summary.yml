@@ -2,7 +2,7 @@ name: Daily Horizon Summary
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Daily at 06:00 UTC (07:00/08:00 Stockholm)
+    - cron: '17 5 * * *'  # 05:17 UTC (07:17 Stockholm summer / 06:17 winter). Odd minute + low-traffic hour avoids GH Actions top-of-hour scheduler congestion.
   workflow_dispatch:      # Allow manual trigger
 
 jobs:
