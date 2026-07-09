@@ -20,7 +20,9 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.token }}
       run: |
-        set -euo pipefail
+        # No `-e`: a transient `gh api` hiccup (e.g. a 403 while the run is still
+        # active) must not abort the step — every failure is handled explicitly.
+        set -uo pipefail
         SHA=$(git ls-remote origin gh-pages | cut -f1)
         export SHA
         echo "Watching Pages deployment for gh-pages@$SHA"
@@ -40,10 +42,13 @@ runs:
         echo "Pages run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$run_id"
 
         for attempt in $(seq 1 6); do
-          for _ in $(seq 1 30); do
-            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.status' || echo "")
-            [ "$status" = "completed" ] && break
+          # Wait until the run actually *finishes*. A still-running build has an
+          # empty conclusion — it is NOT a failure, so we must keep waiting rather
+          # than treat it as one. The step-level `timeout-minutes` bounds this.
+          status=""
+          until [ "$status" = "completed" ]; do
             sleep 10
+            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.status' || echo "")
           done
           conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.conclusion' || echo "")
           case "$conclusion" in
@@ -59,7 +64,11 @@ runs:
           if [ "$attempt" -lt 6 ]; then
             echo "Pages deployment failed (conclusion=$conclusion) — re-running failed jobs (retry $attempt/5)"
             sleep 30
-            gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/rerun-failed-jobs"
+            # The run is completed here, so rerun-failed-jobs should be accepted;
+            # guard it anyway so a transient rejection re-enters the poll loop
+            # instead of killing the step.
+            gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/rerun-failed-jobs" \
+              || echo "rerun request rejected — will re-poll the run"
           fi
         done
         echo "::error::Pages deployment still failing after 5 retries: https://github.com/$GITHUB_REPOSITORY/actions/runs/$run_id"
