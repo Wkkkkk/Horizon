@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional, List, Dict, Any, Union
+from typing import Annotated, Literal, Optional, List, Dict, Any, Union
 from pydantic import BaseModel, HttpUrl, Field, field_validator
 
 
@@ -123,6 +123,7 @@ class GitHubSourceConfig(BaseModel):
     owner: Optional[str] = None
     repo: Optional[str] = None
     enabled: bool = True
+    category: Optional[str] = None
 
 
 class HackerNewsConfig(BaseModel):
@@ -131,6 +132,23 @@ class HackerNewsConfig(BaseModel):
     enabled: bool = True
     fetch_top_stories: int = 30
     min_score: int = 100
+    category: Optional[str] = None
+
+
+class ExtractorType(str, Enum):
+    TRAFILATURA = "trafilatura"
+
+
+class TrafilaturaExtractorConfig(BaseModel):
+    type: Literal[ExtractorType.TRAFILATURA] = ExtractorType.TRAFILATURA
+    favor_precision: bool = False
+    favor_recall: bool = False
+
+
+ExtractorConfig = Annotated[
+    Union[TrafilaturaExtractorConfig],
+    Field(discriminator="type"),
+]
 
 
 class RSSSourceConfig(BaseModel):
@@ -140,6 +158,7 @@ class RSSSourceConfig(BaseModel):
     url: HttpUrl
     enabled: bool = True
     category: Optional[str] = None
+    content_extractor: Optional[str] = None
 
 
 class RedditSubredditConfig(BaseModel):
@@ -153,6 +172,7 @@ class RedditSubredditConfig(BaseModel):
     )
     fetch_limit: int = 25
     min_score: int = 10
+    category: Optional[str] = None
 
 
 class RedditUserConfig(BaseModel):
@@ -162,6 +182,7 @@ class RedditUserConfig(BaseModel):
     enabled: bool = True
     sort: str = "new"
     fetch_limit: int = 10
+    category: Optional[str] = None
 
 
 class RedditConfig(BaseModel):
@@ -179,6 +200,7 @@ class TelegramChannelConfig(BaseModel):
     channel: str  # channel username, e.g. "zaihuapd"
     enabled: bool = True
     fetch_limit: int = 20
+    category: Optional[str] = None
 
 
 class TelegramConfig(BaseModel):
@@ -200,6 +222,7 @@ class TwitterConfig(BaseModel):
     mode: str = "apify"  # "apify" or "playwright"
     users: List[str] = Field(default_factory=list)
     fetch_limit: int = 10
+    category: Optional[str] = None
     fetch_reply_text: bool = False
     max_replies_per_tweet: int = 3
     max_tweets_to_expand: int = 10
@@ -264,6 +287,7 @@ class OSSInsightConfig(BaseModel):
     keywords: List[str] = Field(default_factory=list)
     min_stars: int = 5
     max_items: int = 30
+    category: Optional[str] = None
 
 
 class GDELTConfig(BaseModel):
@@ -436,6 +460,7 @@ class Config(BaseModel):
     ai: AIConfig
     sources: SourcesConfig
     filtering: FilteringConfig
+    extractors: Dict[str, ExtractorConfig] = Field(default_factory=dict)
     email: Optional[EmailConfig] = None
     webhook: Optional[WebhookConfig] = None
     obsidian: Optional[ObsidianConfig] = None
